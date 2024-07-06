@@ -1,0 +1,38 @@
+Fresh install
+=================
+python3 -m venv venv
+
+Run Virtual env and install dependancies
+========================================
+source venv/bin/activate
+pip install -r requirements.txt
+
+
+Running Backend locally:
+========================
+cd server
+python3 backend_app.py
+
+Running Frontend locally:
+========================
+cd client
+streamlit run chatBot.py
+
+
+Testing profile automatically
+==============================
+Add profile details into test_profiles.csv. You can refer to test_profiles_copy.csv for samples.
+Execute test_myCoachAi_CreateProfile.py:
+    python3 test_myCoachAi_CreateProfile.py
+Profile and the Workoutplan will be created and saved into Firebase DB (users and workoutplan collections)
+Run myCoachAi_Chat for Chat simulation. Login with profile phone number and start chatting with coach. Save the chat if you need the bot to remember for future reference
+    streamlit run myCoachAi_Chat.py
+    
+Sending whatsapp with Twilio
+============================
+Run app.py using below command:
+    flask run
+Expose webhook to internet using below command in a new terminal:
+    ngrok http 5000
+Copy the fwding url and paste as webhook in Twilio portal setting:
+    http://<your-ngrok-url>/whatsapp
