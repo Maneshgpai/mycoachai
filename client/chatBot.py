@@ -5,7 +5,6 @@ import hmac
 import os
 from dotenv import load_dotenv
 import json
-import base64
 import requests
 
 load_dotenv()
@@ -82,7 +81,6 @@ def create_chat(phone_number):
 ## Function for bot response
 def get_agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile):
     public_api_url = os.environ['PUBLIC_API_URL']+'/api/mock_chat'
-    # public_api_url = "http://localhost:8080/api/mock_chat"
     print(f"Mock chat >> Calling agent {public_api_url}")
     response = {}
     response = json.dumps(response)

@@ -22,3 +22,5 @@ twilio==9.2.1
 google-cloud-firestore==2.15.0
 flask_cors
 gunicorn==21.2.0
+Celery
+redis

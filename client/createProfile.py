@@ -1,11 +1,11 @@
 import streamlit as st
 from google.cloud import firestore
 from datetime import datetime, timedelta, timezone
-from server.functions import agentCreateProfile as agent
+# from server.functions import agentCreateProfile as agent
 import os
 from dotenv import load_dotenv
 import json
-import base64
+import requests
 
 load_dotenv()
 db = firestore.Client.from_service_account_json("firestore_key.json")
@@ -41,21 +41,39 @@ def validate_mandatory_inputs():
         return True
     return False
 
-@st.experimental_asyncio.to_thread
-async def create_workoutplan(phone_number,profile_data):
-    """Displays data fetched from the given url."""
-    plan = await agent.create_workoutplan(phone_number,profile_data)
-    # st.write(data)
+# @st.experimental_asyncio.to_thread
+def create_workoutplan(phone_number,profile_data):
+    # plan = await agent.create_workoutplan(phone_number,profile_data)
+    
+    public_api_url = os.environ['PUBLIC_API_URL']+'/api/create_profile'
+    print(f"Create Profile >> Calling agent {public_api_url}")
+    # response = {}
+    # response = json.dumps(response)
+    try:
+        requests.post(public_api_url, json={"phone_number": phone_number,"profile_data":profile_data})
+        # response = requests.post(public_api_url
+        # , json={"phone_number": phone_number,"profile_data": profile_data})
+        # response.raise_for_status()
+        # print(f"Create Profile >> Agent response: Status code {response.status_code}. Message:{response.json().get('message')}\n")
+        # return (response.json().get("message"))
+    except requests.exceptions.RequestException as e:
+        st.error(f"Request failed: {e}")
+    except Exception as e:
+        error = "Error: {}".format(str(e))
+        st.error(error)
 
-# Function to display basic information (mandatory inputs)
-def basic_information():
-    # Function to validate phone number
-    def validate_phone_number(phone):
-        if len(phone) == 10 and phone.isdigit():
-            return True
-        return False
-    phone_number = st.text_input("Phone :red[*]", max_chars=10, key="phone", label_visibility="visible")
+# Function to validate phone number
+def validate_phone_number(phone):
+    if len(phone) == 10 and phone.isdigit():
+        return True
+    return False
 
+def show_phone_number():
+    col1, col2 = st.columns([3,10])
+    with col1:
+        ctry_cd = st.text_input("Country Code :red[*]", max_chars=3, value= "+91", key="ctry_cd", label_visibility="visible", disabled=True)
+    with col2:
+        phone_number = st.text_input("Phone :red[*]", max_chars=10, key="phone", label_visibility="visible")
     # Check if the phone number is valid
     if phone_number:
         if validate_phone_number(phone_number):
@@ -63,6 +81,8 @@ def basic_information():
         else:
             st.error("Phone number must be 10 digits and numeric")
 
+# Function to display basic information (mandatory inputs)
+def basic_information():
     st.text_input("Name :red[*]", key="full_name", max_chars=60)
     st.number_input("Age :red[*]", min_value=15, max_value=100, value=None, key="age")
     st.selectbox("Gender :red[*]", ("Female", "Male", "Transgender", "Other", "Prefer not answer"), index=None, key="gender")
@@ -124,17 +144,17 @@ st.title("www.mycoach.ai")
 st.subheader("Your Personal Workout Coach")
 st.write("Please fill out the following details to create your profile.")
 
-# Display mandatory fields
-basic_information()
-
-# Display optional fields with collapsible section
-additional_information()
+show_phone_number()
+with st.form("form_profile", clear_on_submit=False, border=False):
+    basic_information()
+    additional_information()
+    submitted = st.form_submit_button("Submit")
 
 # Button to submit the form
-if st.button("Submit"):
+if submitted:
     # print("log 1:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
     if validate_mandatory_inputs():
-        phone_number = st.session_state.get("phone")
+        phone_number = st.session_state.get("ctry_cd") + st.session_state.get("phone")
         if phone_number:
             if user_exists(phone_number):
                 # print("log 3:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
@@ -147,7 +167,7 @@ if st.button("Submit"):
                     "Gender": st.session_state.get("gender"),
                     "current_height_in_cm": st.session_state.get("height"),
                     "current_weight_in_kg": st.session_state.get("weight"),
-                    "Phone_pii": st.session_state.get("phone"),
+                    "Phone_pii": st.session_state.get("ctry_cd") + st.session_state.get("phone"),
                     "fitness_goal": st.session_state.get("fitness_goal"),
                     "workout_types": st.session_state.get("workout_types"),
                     "workout_days": st.session_state.get("workout_days"),
@@ -164,7 +184,7 @@ if st.button("Submit"):
                 }
                 # print("log 5:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
                 save_user_profile(phone_number, profile_data)
-                st.success("Profile created successfully! Agents are working now to create the best plan as per the given specifications. You will receieve a Whatsapp from our agents, once the plan is ready.")
+                st.success("Woohoo!!! That's a great first step! You will soon receive Whatsapp message from our agents!")
                 
                 create_workoutplan(phone_number,profile_data)
 

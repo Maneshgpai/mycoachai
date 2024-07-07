@@ -1,3 +1,10 @@
+from twilio.twiml.messaging_response import MessagingResponse
+from twilio.rest import Client
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+
 def json_to_human_readable(data, prefix=""):
     result = []
     if isinstance(data, dict):
@@ -41,6 +48,15 @@ def pick_language(data):
         if "language" in key.lower():
             return value
 
+def validate_phone(phone, db):
+    user_ref = db.collection('users').document(phone)
+    doc = user_ref.get()
+
+    if (doc.exists):
+        return True
+    else:
+        return False
+
 def get_user_data(phone, db):
     user_ref = db.collection('users').document(phone)
     doc = user_ref.get()
@@ -74,3 +90,17 @@ def get_user_data(phone, db):
                 , "hist_user_bot_conversation":hist_user_bot_conversation}
     else:
         return "Invalid Phone number. Please try again."
+
+def send_whatsapp(phone_number, message):
+    ## If workout plan is created, send Whatsapp message informing the user
+    client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
+    message = client.messages.create(
+        from_='whatsapp:+14155238886',
+        body=message,
+        to='whatsapp:'+phone_number,
+        media='https://example.com/path/image.jpg')
+
+    # resp = MessagingResponse()
+    # msg = resp.message()
+    # msg.body('this is the response text')
+    # msg.media('https://example.com/path/image.jpg')

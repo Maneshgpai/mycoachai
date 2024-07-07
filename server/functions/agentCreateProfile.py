@@ -4,17 +4,20 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.messages import SystemMessage, HumanMessage
-from server.functions import supportFunc as agent_func
+from functions import supportFunc as agent_func
 from langchain_openai import ChatOpenAI
 from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
+from google.cloud import firestore
+
 load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = os.environ["OPENAI_API_KEY"]
-tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 model = os.getenv("LLM_MODEL")
+db = firestore.Client.from_service_account_json("firestore_key.json")
+ist = timezone(timedelta(hours=5, minutes=30))
 
+tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 memory = SqliteSaver.from_conn_string(":memory:")
 model = ChatOpenAI(model=model, temperature=0)
 
@@ -115,131 +118,155 @@ class Queries(BaseModel):
 
 ### Creating the agent ###
 def create_workoutplan(phone_number,user_profile):
-    ### This is Plan node. This node calls LLM to create a high level outline of the workout plan, along with relevant notes ###
-    def plan_node(state: AgentState):
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered PLAN NODE...")
-            messages = [
-                SystemMessage(content=PLAN_PROMPT), 
-                HumanMessage(content=state['task'])
-            ]
-            response = model.invoke(messages)
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Made a plan!", response.content)
-            return {"plan": response.content}
-
-    def research_plan_node(state: AgentState):
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered Research NODE...")
-            queries = model.with_structured_output(Queries).invoke([
-                SystemMessage(content=RESEARCH_PLAN_PROMPT),
-                HumanMessage(content=state['task'])
-            ])
-            content = state['content'] or []
-            for q in queries.queries:
-                response = tavily.search(query=q, max_results=2)
-                for r in response['results']:
-                    content.append(r['content'])
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Completed Research!")
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Research queries are:",content)
-            return {"content": content}
-
-    def generation_node(state: AgentState):
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered GENERATE node...")
-            content = "\n\n".join(state['content'] or [])
-            user_message = HumanMessage(
-                content=f"{state['task']}\n\nHere is my plan:\n\n{state['plan']}")
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Human message for LLM is:", user_message)
-            messages = [
-                SystemMessage(
-                    content=WRITER_PROMPT.format(content=content)
-                ),
-                user_message
+    try:
+        ### This is Plan node. This node calls LLM to create a high level outline of the workout plan, along with relevant notes ###
+        def plan_node(state: AgentState):
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered PLAN NODE...")
+                messages = [
+                    SystemMessage(content=PLAN_PROMPT), 
+                    HumanMessage(content=state['task'])
                 ]
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Start LLM call+++++++++++++++:")
-            response = model.invoke(messages)
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Finished LLM call+++++++++++++++:")
+                response = model.invoke(messages)
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Made a plan!", response.content)
+                return {"plan": response.content}
+
+        def research_plan_node(state: AgentState):
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered Research NODE...")
+                queries = model.with_structured_output(Queries).invoke([
+                    SystemMessage(content=RESEARCH_PLAN_PROMPT),
+                    HumanMessage(content=state['task'])
+                ])
+                content = state['content'] or []
+                for q in queries.queries:
+                    response = tavily.search(query=q, max_results=2)
+                    for r in response['results']:
+                        content.append(r['content'])
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Completed Research!")
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Research queries are:",content)
+                return {"content": content}
+
+        def generation_node(state: AgentState):
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered GENERATE node...")
+                content = "\n\n".join(state['content'] or [])
+                user_message = HumanMessage(
+                    content=f"{state['task']}\n\nHere is my plan:\n\n{state['plan']}")
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Human message for LLM is:", user_message)
+                messages = [
+                    SystemMessage(
+                        content=WRITER_PROMPT.format(content=content)
+                    ),
+                    user_message
+                    ]
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Start LLM call+++++++++++++++:")
+                response = model.invoke(messages)
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Finished LLM call+++++++++++++++:")
+                
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Generation Complete!")
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Revision #", state.get("revision_number", 1) + 1,": Generated draft:",response.content)
+                return {
+                    "draft": response.content, 
+                    "revision_number": state.get("revision_number", 1) + 1
+                }
+
+        def reflection_node(state: AgentState):
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered REFLECT node...")
+                messages = [
+                    SystemMessage(content=REFLECTION_PROMPT), 
+                    HumanMessage(content=state['draft'])
+                ]
+                response = model.invoke(messages)
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "REFLECT: Reflecting Complete!")
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "REFLECT: Reflected content:",response.content)
+                return {"critique": response.content}
+
+        # def research_critique_node(state: AgentState):
+                # queries = model.with_structured_output(Queries).invoke([
+                #     SystemMessage(content=RESEARCH_CRITIQUE_PROMPT),
+                #     HumanMessage(content=state['critique'])
+                # ])
+                # content = state['content'] or []
+                # for q in queries.queries:
+                #     response = tavily.search(query=q, max_results=2)
+                #     for r in response['results']:
+                #         content.append(r['content'])
+                # return {"content": content}
             
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Generation Complete!")
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "GENERATE: Revision #", state.get("revision_number", 1) + 1,": Generated draft:",response.content)
-            return {
-                "draft": response.content, 
-                "revision_number": state.get("revision_number", 1) + 1
-            }
+        def should_continue(state):
+                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered Conditional Edge. Should continue (Y/N)?...")
+                if state["revision_number"] > state["max_revisions"]:
+                    print("NO, don't continue!")
+                    return END
+                print("YES, continue reflecting...")
+                return "reflect"
 
-    def reflection_node(state: AgentState):
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered REFLECT node...")
-            messages = [
-                SystemMessage(content=REFLECTION_PROMPT), 
-                HumanMessage(content=state['draft'])
-            ]
-            response = model.invoke(messages)
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "REFLECT: Reflecting Complete!")
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "REFLECT: Reflected content:",response.content)
-            return {"critique": response.content}
-
-    # def research_critique_node(state: AgentState):
-            queries = model.with_structured_output(Queries).invoke([
-                SystemMessage(content=RESEARCH_CRITIQUE_PROMPT),
-                HumanMessage(content=state['critique'])
-            ])
-            content = state['content'] or []
-            for q in queries.queries:
-                response = tavily.search(query=q, max_results=2)
-                for r in response['results']:
-                    content.append(r['content'])
-            return {"content": content}
+        print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Initialising agent ******** ")
+        builder = StateGraph(AgentState)
+        builder.add_node("planner", plan_node)
+        builder.add_node("generate", generation_node)
+        builder.add_node("reflect", reflection_node)
+        builder.add_node("research_plan", research_plan_node)
+        ## START: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
+        # builder.add_node("research_critique", research_critique_node) ## No need for critique for a health workout plan
+        ## END: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
+        builder.set_entry_point("planner")
+        builder.add_conditional_edges(
+            "generate", 
+            should_continue, 
+            {END: END, "reflect": "reflect"}
+            )
         
-    def should_continue(state):
-            print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered Conditional Edge. Should continue (Y/N)?...")
-            if state["revision_number"] > state["max_revisions"]:
-                print("NO, don't continue!")
-                return END
-            print("YES, continue reflecting...")
-            return "reflect"
+        ## START: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
+        # builder.add_edge("planner", "research_plan")
+        # builder.add_edge("research_plan", "generate")
+        # builder.add_edge("reflect", "research_critique")
+        # builder.add_edge("research_critique", "generate")
 
-    print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Initialising agent ******** ")
-    builder = StateGraph(AgentState)
-    builder.add_node("planner", plan_node)
-    builder.add_node("generate", generation_node)
-    builder.add_node("reflect", reflection_node)
-    builder.add_node("research_plan", research_plan_node)
-    ## START: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
-    # builder.add_node("research_critique", research_critique_node) ## No need for critique for a health workout plan
-    ## END: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
-    builder.set_entry_point("planner")
-    builder.add_conditional_edges(
-        "generate", 
-        should_continue, 
-        {END: END, "reflect": "reflect"}
-        )
+        builder.add_edge("planner", "research_plan")
+        builder.add_edge("research_plan", "generate")
+        builder.add_edge("reflect", "generate")
+        ## END: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
+
+        graph = builder.compile(checkpointer=memory)
+        print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Agent graph compiled ******** ")
+
+        thread = {"configurable": {"thread_id": phone_number}}
+        
+        human_message = agent_func.json_to_human_readable(user_profile)
+        lang = agent_func.pick_language(user_profile)
+        human_message = "Give a workout plan in "+lang+" language strictly considering the user profile and preferences. Plan should strictly consider age, gender, current weight(in kg), current activity level, current fitness level, current workout equipment (if any), current sleep hours (if any), fitness goal (if any) and current stress level. The plan should be exactly as per the workout type selected by user. The plan duration for each day must be achievable within the workout duration given, based on the current fitness level and be possible in the workout locations. If any workout equipment is provided, plan should include these. Plan should also consider other options which are possible without using the current equipment. The details of the various needs of the user are given within three exclamations.!!!"+human_message+"!!!"
+
+        print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Agent graph executing ******** ")
+        for event in graph.stream({
+            'task': human_message,
+            "max_revisions": 2,
+            "revision_number": 1,
+        }, thread):
+            for key, value in event.items():
+                if key == 'generate' and value.get('revision_number') == 3:
+                    print(datetime.now(timezone(timedelta(hours=5, minutes=30))),'********* Final response *********')
+                    # return value['draft']
+                    print(f"{datetime.now(timezone(timedelta(hours=5, minutes=30)))}, Saving the workout plan into DB:{value['draft']}")
+                    db.collection('workoutplan').document(phone_number).set({"timestamp": datetime.now(timezone(timedelta(hours=5, minutes=30))),"action":"create_workoutplan","profile":value['draft']})
+                    print(f"{datetime.now(timezone(timedelta(hours=5, minutes=30)))}, Saved the workout plan into DB")
+                else:
+                    print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), f"******** {key} agent response ******** ")
+        response = {"status": "Success in agentCreateProfile","status_cd": 200,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+
+    except Exception as e:
+        error = "Error: {}".format(str(e))
+        response = {"status": "Error in agentCreateProfile","status_cd": 400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+
+    db.collection('log').document(phone_number).set(response)
+
+    # try:
+    #     message = 'Hello, Your work profile has been created successfully. You can ask me about anything related to your workout plan.'
+    #     agent_func.send_whatsapp(phone_number, message)
+    #     response = {"status": "Workout plan confirmation sent on Whatsapp","status_cd": 200,"message": message,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+    # except Exception as e:
+    #     error = "Error: {}".format(str(e))
+    #     response = {"status": "Error in Workout plan confirmation on Whatsapp","status_cd":400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+    # db.collection('log').document(phone_number).set(response)
+
+    # return response
+
     
-    ## START: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
-    # builder.add_edge("planner", "research_plan")
-    # builder.add_edge("research_plan", "generate")
-    # builder.add_edge("reflect", "research_critique")
-    # builder.add_edge("research_critique", "generate")
-
-    builder.add_edge("planner", "research_plan")
-    builder.add_edge("research_plan", "generate")
-    builder.add_edge("reflect", "generate")
-    ## END: Removing critique agent actions, to save cost of querying. This will be helpful when creating more complicated outputs like research papers. ###
-
-    graph = builder.compile(checkpointer=memory)
-    print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Agent graph compiled ******** ")
-
-    thread = {"configurable": {"thread_id": phone_number}}
-    
-    human_message = agent_func.json_to_human_readable(user_profile)
-    lang = agent_func.pick_language(user_profile)
-    human_message = "Give a workout plan in "+lang+" language strictly considering the user profile and preferences. Plan should strictly consider age, gender, current weight(in kg), current activity level, current fitness level, current workout equipment (if any), current sleep hours (if any), fitness goal (if any) and current stress level. The plan should be exactly as per the workout type selected by user. The plan duration for each day must be achievable within the workout duration given, based on the current fitness level and be possible in the workout locations. If any workout equipment is provided, plan should include these. Plan should also consider other options which are possible without using the current equipment. The details of the various needs of the user are given within three exclamations.!!!"+human_message+"!!!"
-
-    print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Agent graph executing ******** ")
-    for event in graph.stream({
-        'task': human_message,
-        "max_revisions": 2,
-        "revision_number": 1,
-    }, thread):
-        for key, value in event.items():
-            if key == 'generate' and value.get('revision_number') == 3:
-                 print(datetime.now(),'********* Final response *********')
-                 return value['draft']
-            else:
-                print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), f"******** {key} agent response ******** ")
