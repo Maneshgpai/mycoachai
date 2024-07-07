@@ -1,12 +1,3 @@
-import json
-import base64
-from google.cloud import firestore
-from functions import agentChat as agent
-from functions import supportFunc as func
-from datetime import datetime, timedelta, timezone
-
-
-
 def json_to_human_readable(data, prefix=""):
     result = []
     if isinstance(data, dict):
@@ -27,7 +18,7 @@ def json_to_human_readable(data, prefix=""):
         result.append(f"{data}")
     return ";".join(result)
 
-def user_health_profile(data, prefix=""):
+def get_user_health_profile(data, prefix=""):
     result = []
     if isinstance(data, dict):
         for key, value in data.items():
@@ -61,8 +52,8 @@ def get_user_data(phone, db):
             if k == 'profile':
                 user_profile = v
         
-        user_health_profile = func.user_health_profile(user_profile)
-        language = func.pick_language(user_profile)
+        user_health_profile = get_user_health_profile(user_profile)
+        language = pick_language(user_profile)
         workoutplan_ref = db.collection('workoutplan').document(phone)
         workoutplan = ""
         doc1 = workoutplan_ref.get()

@@ -1,7 +1,6 @@
 .venv/
 test_data
 .env
-*.json
 *.mp3
 *.flaac
 cmdlineChat.py
@@ -160,8 +159,5 @@ cython_debug/
 #.idea/
 testing
 *.env
-*.json
-client/firestore_key.json
-server/firestore_key.json
 temp.py
 streamlit
