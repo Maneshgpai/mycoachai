@@ -9,9 +9,7 @@ import base64
 import requests
 
 load_dotenv()
-firestore_key = str(os.environ['FIRESTORE_KEY'])[2:-1]
-firestore_key_json= json.loads(base64.b64decode(firestore_key).decode('utf-8'))
-db = firestore.Client.from_service_account_info(firestore_key_json)
+db = firestore.Client.from_service_account_json("firestore_key.json")
 ist = timezone(timedelta(hours=5, minutes=30))
 st.session_state.status = st.session_state.get("status", "unverified")
 
