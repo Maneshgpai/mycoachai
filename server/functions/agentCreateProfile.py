@@ -4,7 +4,7 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, List
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.messages import SystemMessage, HumanMessage
-from functions import supportFunc as agent_func
+from functions import supportFunc as func
 from langchain_openai import ChatOpenAI
 from datetime import datetime, timedelta, timezone
 import os
@@ -119,6 +119,8 @@ class Queries(BaseModel):
 ### Creating the agent ###
 def create_workoutplan(phone_number,user_profile):
     try:
+        phone_log_ref = db.collection('log').document(phone_number)
+
         ### This is Plan node. This node calls LLM to create a high level outline of the workout plan, along with relevant notes ###
         def plan_node(state: AgentState):
                 print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "Entered PLAN NODE...")
@@ -231,8 +233,8 @@ def create_workoutplan(phone_number,user_profile):
 
         thread = {"configurable": {"thread_id": phone_number}}
         
-        human_message = agent_func.json_to_human_readable(user_profile)
-        lang = agent_func.pick_language(user_profile)
+        human_message = func.json_to_human_readable(user_profile)
+        lang = func.pick_language(user_profile)
         human_message = "Give a workout plan in "+lang+" language strictly considering the user profile and preferences. Plan should strictly consider age, gender, current weight(in kg), current activity level, current fitness level, current workout equipment (if any), current sleep hours (if any), fitness goal (if any) and current stress level. The plan should be exactly as per the workout type selected by user. The plan duration for each day must be achievable within the workout duration given, based on the current fitness level and be possible in the workout locations. If any workout equipment is provided, plan should include these. Plan should also consider other options which are possible without using the current equipment. The details of the various needs of the user are given within three exclamations.!!!"+human_message+"!!!"
 
         print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), "******** Agent graph executing ******** ")
@@ -250,23 +252,28 @@ def create_workoutplan(phone_number,user_profile):
                     print(f"{datetime.now(timezone(timedelta(hours=5, minutes=30)))}, Saved the workout plan into DB")
                 else:
                     print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), f"******** {key} agent response ******** ")
-        response = {"status": "Success in agentCreateProfile","status_cd": 200,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
-
+        response = {"status": "Agent created and saved workout plan successfully to DB","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+    
     except Exception as e:
         error = "Error: {}".format(str(e))
-        response = {"status": "Error in agentCreateProfile","status_cd": 400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+        response = {"status": "Error in agent Create Profile","status_cd": 400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
 
-    db.collection('log').document(phone_number).set(response)
+    ## Logging start ##
+    func.createLog(phone_log_ref, response)
+    ## Logging stop ##
 
-    # try:
-    #     message = 'Hello, Your work profile has been created successfully. You can ask me about anything related to your workout plan.'
-    #     agent_func.send_whatsapp(phone_number, message)
-    #     response = {"status": "Workout plan confirmation sent on Whatsapp","status_cd": 200,"message": message,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
-    # except Exception as e:
-    #     error = "Error: {}".format(str(e))
-    #     response = {"status": "Error in Workout plan confirmation on Whatsapp","status_cd":400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
-    # db.collection('log').document(phone_number).set(response)
+    try:
+        message = 'Hello, Your work profile has been created successfully. You can ask me about anything related to your workout plan.'
+        func.send_whatsapp(phone_number, message)
+        response = {"status": "Workout plan confirmation sent on Whatsapp","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+    except Exception as e:
+        error = "Error: {}".format(str(e))
+        response = {"status": "Error in Whatsapp confirmation for Workout plan","status_cd":400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
 
-    # return response
+    ## Logging start ##
+    func.createLog(phone_log_ref, response)
+    ## Logging stop ##
+
+    return response
 
     

@@ -82,23 +82,6 @@ class Agent:
 
 def agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile):
     print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} ********* Entered agent_response()")    
-    # print(f"***latest_user_message: {latest_user_message}\n\n")
-    # print(f"***hist_user_bot_conversation: {hist_user_bot_conversation}\n\n")
-    # print(f"***workoutplan: {workoutplan}\n\n")
-    # print(f"***user_health_profile: {user_health_profile}\n\n")
-    
-    # prompt = f"""You are an expert health workout trainer & coach. You know in detail about every workout possible including Gym, home, outdoor based. These include cardio, yoga, weight training, HIIT, marathon training, swimming, ironman training, aerobics, weight loss trainings, flexibility trainings, medical recuperation trainings and a lot more.
-    # Set the context of topic: You are chatting with a user who has their health details as:
-    #   {user_health_profile}
-    # They have been given a workout plan of this according to their preference and health goal:
-    #   {workoutplan}
-    # Set the current context of latest question: The user has asked you this question {latest_user_message}. 
-    # You are to identify the intention of the question and reply with the action to be taken. You are not to proceed directly with action.
-    # The chat history between you and the user is give here {hist_user_bot_conversation}. You are to keep this history in context while you reply to the latest question.
-    # Setting the behaviour and tone of your chat: You have a happy and peppy tone, with a positive and encouraging attitude. You only answer to the question like a chat message. Do not give long answers like how AI talks. Always confirm with the user if you are doubtful of the intention or if there are multiple answers to the question.
-    # Language of the chat: You will respond only in {language} language. If you do not know this language, you will apologise and switch to English.
-    # Additional actions which you can take: Use the search engine to look up for information related to the question from the user given here. You are allowed to make multiple calls (either together or in sequence). Only look up information when you are sure of what you want. If you need to look up some information before asking a follow up question, you are allowed to do that! Always use the tools to validate your response.
-    # """
     
     prompt = f"""You are an expert health workout trainer & coach. You know in detail about every workout possible including Gym, home, outdoor based. These include cardio, yoga, weight training, HIIT, marathon training, swimming, ironman training, aerobics, weight loss trainings, flexibility trainings, medical recuperation trainings and a lot more. You always chat in {language} language.
     You are currently chatting with a user and their Latest Question is {latest_user_message}.
@@ -108,8 +91,6 @@ def agent_response(phone_number, latest_user_message, language, hist_user_bot_co
     You are to analyse the Chat History, Health Profile and Workout Plan and understand if answer to user's Latest Question is available. If you are not able to find the complete answer, you are to rewrite the question into a single sentence. This single sentence will be used to search the internet for the answer to users question."""
 
     abot = Agent(model, [tool], system=prompt, checkpointer=memory)
-
-    # human_message = f"Question is {latest_user_message}. The context for this question is {hist_user_bot_conversation}."
 
     messages = [HumanMessage(content=latest_user_message)] 
 

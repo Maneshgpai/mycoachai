@@ -35,35 +35,33 @@ def home():
 def mock_chat():
     try:
         ### Code for mock Streamlit chat:
-        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********Entered mock_chat API") ## [user_health_profile, lang, workoutplan]
+        # print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********Entered mock_chat API") ## [user_health_profile, lang, workoutplan]
         data = request.json
-        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********mock_chat API >> Data for the user is {data}") ## [user_health_profile, lang, workoutplan]
+        # print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********mock_chat API >> Data for the user is {data}") ## [user_health_profile, lang, workoutplan]
 
         messages = []
         phone_number = data.get('phone_number')
-        latest_user_message = data.get('latest_user_message')
-        
-        ### Code for TWILIO Whatsapp chat:
-        # phone_number = request.form.get('From')
-        # latest_user_message = request.form.get('Body')
-        # data = func.get_user_data(phone_number, db)
-        # print(f"********** Data for the user is {data}") ## [user_health_profile, lang, workoutplan]
 
-        ### START : Common code
-        hist_user_bot_conversation = data.get('hist_user_bot_conversation')
-        language = data.get('language')
-        workoutplan = data.get('workoutplan')
-        user_health_profile = data.get('user_health_profile')
-        print(f"********** Received Streamlit chat message from {phone_number}\n\n latest_user_message {latest_user_message}\n\n language {language}\n\n hist_user_bot_conversation{hist_user_bot_conversation}\n\n workoutplan {workoutplan}\n\n user_health_profile {user_health_profile}\n\n")
+        if func.validate_phone(phone_number, db):
+            latest_user_message = data.get('latest_user_message')
+            hist_user_bot_conversation = data.get('hist_user_bot_conversation')
+            language = data.get('language')
+            workoutplan = data.get('workoutplan')
+            user_health_profile = data.get('user_health_profile')
+            # print(f"********** Received Streamlit chat message from {phone_number}\n\n latest_user_message {latest_user_message}\n\n language {language}\n\n hist_user_bot_conversation{hist_user_bot_conversation}\n\n workoutplan {workoutplan}\n\n user_health_profile {user_health_profile}\n\n")
 
-        botresponse = ""
-        botresponse = agentChat.agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile)
-        status_cd = 200
-        response = {"status": "Success","status_cd": status_cd,"message": botresponse}
-        # return jsonify({"status": "Success", "response": response}), 200
+            botresponse = ""
+            botresponse = agentChat.agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile)
+            status_cd = 200
+            response = {"status": "Success","status_cd": status_cd,"message": botresponse}
+            log_response = {"message": "MOCK Chat API > Bot responded successfully","bot_message": botresponse,"user_message":latest_user_message, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+        else:
+            botresponse = f"Hello! I don't find a workout profile for you against phone {phone_number}."
+            log_response = {"status": "MOCK Chat API > Error in phone number validation","status_cd":400, "message": botresponse, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
     except Exception as e:
         error = "Error: {}".format(str(e))
         status_cd = 400
+        log_response = {"status": "Error in MOCK Chat API call","status_cd":400, "message": error, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
         response = {"status": "Error","status_cd": status_cd,"message": error}
 
     # hist_user_bot_conversation.append({"role": "user", "content": latest_user_message, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')})
@@ -73,27 +71,25 @@ def mock_chat():
         chat_ref.set({'messages': []})
     chat_ref.update({"messages": firestore.ArrayUnion(hist_user_bot_conversation)})
 
+    ## Logging start ##
+    phone_log_ref = db.collection('log').document(phone_number)
+    func.createLog(phone_log_ref, log_response)
+    ## Logging stop ##
+
     ### Code for mock Streamlit chat:
     return jsonify(response), status_cd
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
     try:
-        ### Code for mock Streamlit chat:
-        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********Entered CHAT API") ## [user_health_profile, lang, workoutplan]
-        # data = request.json
-        # phone_number = data.get('phone_number')
-        # latest_user_message = data.get('latest_user_message')
-        
-        ### Code for TWILIO Whatsapp chat:
+        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********Entered CHAT API")
         # messages = []
         phone_number = request.form.get('From')
         if func.validate_phone(phone_number, db):
             latest_user_message = request.form.get('Body')
             data = func.get_user_data(phone_number, db)
-            print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> Data for the user is {data}") ## [user_health_profile, lang, workoutplan]
+            print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> Data for the user is {data}")
 
-            ### START : Common code
             hist_user_bot_conversation = data.get('hist_user_bot_conversation')
             language = data.get('language')
             workoutplan = data.get('workoutplan')
@@ -102,11 +98,19 @@ def chat():
             botresponse = ""
             botresponse = agentChat.agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile)
             api_response = {"status": "Success","status_cd":200,"message": botresponse}
+            log_response = {"message": "Chat API > Bot responded successfully","bot_message": botresponse,"user_message":latest_user_message, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
         else:
-            botresponse = f"Hello! I don't find a workout profile for you against phone {phone_number}. Go to "
+            botresponse = f"Hello! I don't find a workout profile for you against phone {phone_number}."
+            log_response = {"status": "Chat API > Error in phone number validation","status_cd":400, "message": botresponse, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
     except Exception as e:
         error = "Error: {}".format(str(e))
+        log_response = {"status": "Chat API > Error in Chat API call","status_cd":400, "message": error, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
         api_response = {"status": "Error","status_cd":400,"message": error}
+
+    ## Logging start ##
+    phone_log_ref = db.collection('log').document(phone_number)
+    func.createLog(phone_log_ref, log_response)
+    ## Logging stop ##
 
     hist_user_bot_conversation.append({"role": "user", "content": latest_user_message, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"source":"chat"})
     hist_user_bot_conversation.append({"role": "assistant", "content": api_response, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"source":"chat"})
@@ -162,13 +166,32 @@ def create_profile():
         data = request.json
         phone_number = data.get('phone_number')
         profile_data = data.get('profile_data')
+        
+        ## Save profile to DB
+        db.collection('users').document(phone_number).set({"timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"action":"create_profile","profile":profile_data})
+
+        phone_log_ref = db.collection('log').document(phone_number)
+        ## Logging start ##
+        resp = {"message": "Saved profile to DB","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+        func.createLog(phone_log_ref, resp)
+        ## Logging stop ##
+
         task = create_workoutplan_async(phone_number,profile_data)
-        response = {"status": "Trigered profile creation task","status_cd":200,"message": "Profile is being generated. You will recieve a message once this is complete","task_id": task.id,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+
+        ## Logging start ##
+        resp = {"message": "Backend api >> Workout plan created successfully","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+        func.createLog(phone_log_ref, resp)
+        ## Logging stop ##
+
+        # response = {"status": "Triggered profile creation task","status_cd":200,"message": "Profile is being generated. You will recieve a message once this is complete","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
     except Exception as e:
         error = "Error: {}".format(str(e))
         response = {"status": "Error in api create_profile","status_cd":400,"message": error,"timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+        ## Logging start ##
+        func.createLog(phone_log_ref, response)
+        ## Logging stop ##
 
-    db.collection('log').document(phone_number).set(response)
+    
 
 if __name__ == "__main__":
     # app.run(host='0.0.0.0', port=5000, debug=False) ### For Render

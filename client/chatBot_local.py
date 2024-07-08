@@ -71,8 +71,8 @@ def save_chat_history(phone_number, messages):
     chat_ref = db.collection('chats').document(phone_number)
     ist = timezone(timedelta(hours=5, minutes=30))
     timestamp = datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")
-    chat_ref.update({"messages": firestore.ArrayUnion(messages),
-                     "session_timestamps": firestore.ArrayUnion([timestamp])})
+    chat_ref.update({"messages": firestore.ArrayUnion(messages),"session_timestamps": firestore.ArrayUnion([timestamp])})
+
 
 def set_user_session(phone):
     user_ref = db.collection('users').document(phone)

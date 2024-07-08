@@ -2,8 +2,10 @@ from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 import os
 from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
 load_dotenv()
 
+ist = timezone(timedelta(hours=5, minutes=30))
 
 def json_to_human_readable(data, prefix=""):
     result = []
@@ -92,15 +94,11 @@ def get_user_data(phone, db):
         return "Invalid Phone number. Please try again."
 
 def send_whatsapp(phone_number, message):
-    ## If workout plan is created, send Whatsapp message informing the user
     client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
     message = client.messages.create(
         from_='whatsapp:+14155238886',
         body=message,
-        to='whatsapp:'+phone_number,
-        media='https://example.com/path/image.jpg')
+        to='whatsapp:'+phone_number,)
 
-    # resp = MessagingResponse()
-    # msg = resp.message()
-    # msg.body('this is the response text')
-    # msg.media('https://example.com/path/image.jpg')
+def createLog(phone_log_ref, response):
+    phone_log_ref.collection("session_"+datetime.now(ist).strftime('%Y-%m-%d')).document(str(datetime.now(ist))).set(response)

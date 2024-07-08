@@ -34,7 +34,7 @@ def user_exists(phone_number):
 # Function to save user profile
 def save_user_profile(phone_number, profile_data):
     db.collection('users').document(phone_number).set({"timestamp": timestamp,"action":"create_profile","profile":profile_data})
-
+    
 # Function to validate mandatory fields
 def validate_mandatory_inputs():
     if st.session_state.get("phone") and st.session_state.get("full_name") and st.session_state.get("age") and st.session_state.get("gender") and st.session_state.get("height") and st.session_state.get("weight") and st.session_state.get("fitness_goal") and st.session_state.get("workout_types") and st.session_state.get("workout_days") and st.session_state.get("workout_duration") and st.session_state.get("workout_location"):
@@ -43,19 +43,14 @@ def validate_mandatory_inputs():
 
 # @st.experimental_asyncio.to_thread
 def create_workoutplan(phone_number,profile_data):
-    # plan = await agent.create_workoutplan(phone_number,profile_data)
-    
     public_api_url = os.environ['PUBLIC_API_URL']+'/api/create_profile'
     print(f"Create Profile >> Calling agent {public_api_url}")
-    # response = {}
-    # response = json.dumps(response)
+    response = {}
+    response = json.dumps(response)
     try:
-        requests.post(public_api_url, json={"phone_number": phone_number,"profile_data":profile_data})
-        # response = requests.post(public_api_url
-        # , json={"phone_number": phone_number,"profile_data": profile_data})
-        # response.raise_for_status()
-        # print(f"Create Profile >> Agent response: Status code {response.status_code}. Message:{response.json().get('message')}\n")
-        # return (response.json().get("message"))
+        response = requests.post(public_api_url, json={"phone_number": phone_number,"profile_data":profile_data})
+        response.raise_for_status()
+        print (response.json().get("message"))
     except requests.exceptions.RequestException as e:
         st.error(f"Request failed: {e}")
     except Exception as e:
@@ -155,6 +150,7 @@ if submitted:
     # print("log 1:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
     if validate_mandatory_inputs():
         phone_number = st.session_state.get("ctry_cd") + st.session_state.get("phone")
+        phone_log_ref = db.collection('log').document(phone_number)
         if phone_number:
             if user_exists(phone_number):
                 # print("log 3:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
@@ -183,9 +179,9 @@ if submitted:
                     "language": st.session_state.get("language"),
                 }
                 # print("log 5:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
-                save_user_profile(phone_number, profile_data)
+                #save_user_profile(phone_number, profile_data)
+                response = {"status": "Saved profile to DB","status_cd":200,"message": "Saved profile to DB","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
                 st.success("Woohoo!!! That's a great first step! You will soon receive Whatsapp message from our agents!")
-                
                 create_workoutplan(phone_number,profile_data)
 
         else:
