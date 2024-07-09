@@ -248,7 +248,7 @@ def create_workoutplan(phone_number,user_profile):
                     print(datetime.now(timezone(timedelta(hours=5, minutes=30))),'********* Final response *********')
                     # return value['draft']
                     print(f"{datetime.now(timezone(timedelta(hours=5, minutes=30)))}, Saving the workout plan into DB:{value['draft']}")
-                    db.collection('workoutplan').document(phone_number).set({"timestamp": datetime.now(timezone(timedelta(hours=5, minutes=30))),"action":"create_workoutplan","profile":value['draft']})
+                    db.collection('workoutplan').document(phone_number).set({"timestamp": datetime.now(timezone(timedelta(hours=5, minutes=30))),"action":"create_workoutplan","plan":value['draft']})
                     print(f"{datetime.now(timezone(timedelta(hours=5, minutes=30)))}, Saved the workout plan into DB")
                 else:
                     print(datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S"), f"******** {key} agent response ******** ")

@@ -3,9 +3,13 @@ from twilio.rest import Client
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
+from google.cloud import firestore
+
 load_dotenv()
 
 ist = timezone(timedelta(hours=5, minutes=30))
+db = firestore.Client.from_service_account_json("firestore_key.json")
+
 
 def json_to_human_readable(data, prefix=""):
     result = []
@@ -50,18 +54,24 @@ def pick_language(data):
         if "language" in key.lower():
             return value
 
+def create_first_chat_collection(phone_number, db):
+    chat_ref = db.collection('chats').document(phone_number)
+    if not chat_ref.get().exists:
+        chat_ref.set({'messages': [], "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')})
+
 def validate_phone(phone, db):
     user_ref = db.collection('users').document(phone)
     doc = user_ref.get()
-
+    print(f"validate_phone >> doc:{doc.to_dict()}, phone:{phone}")
+    print()
     if (doc.exists):
-        return True
+        return user_ref
     else:
         return False
 
-def get_user_data(phone, db):
-    user_ref = db.collection('users').document(phone)
-    doc = user_ref.get()
+def get_user_data(phone, db, user_data):
+    # user_ref = db.collection('users').document(phone)
+    doc = user_data.get()
 
     if doc.exists:
         ## Fetch user profile from DB
@@ -81,16 +91,23 @@ def get_user_data(phone, db):
                 if k == 'plan':
                     workoutplan = v
         
+        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> get_user_data() >> workoutplan:{workoutplan}")
+
         chat_hist = db.collection('chats').document(phone)
         doc = chat_hist.get()
         if doc.exists:
             hist_user_bot_conversation = doc.to_dict().get('messages', [])
+        else:
+            create_first_chat_collection(phone, db)
+            hist_user_bot_conversation = []
         
+        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> End og get_user_data()")
         return {"user_health_profile":user_health_profile
                 , "language":language
                 , "workoutplan":workoutplan
                 , "hist_user_bot_conversation":hist_user_bot_conversation}
     else:
+        print("get_user_data >> NO Doc does not exists")
         return "Invalid Phone number. Please try again."
 
 def send_whatsapp(phone_number, message):

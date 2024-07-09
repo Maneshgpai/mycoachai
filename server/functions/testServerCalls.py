@@ -29,13 +29,12 @@ def send_whatsapp_sender(phone_number, message):
     ## If workout plan is created, send Whatsapp message informing the user
     client = Client(acct_sid, auth_token)
     message = client.messages.create(
-        from_="whatsapp:+917676105788",
+        from_="whatsapp:+917676912381",
         to='whatsapp:'+phone_number,
         body=message,)
     
 def main():
-    # send_whatsapp_msging_srvc("+919633528888", f"The time is {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}")
-    send_whatsapp_sandbox("+917676912381", f"The time is {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}")
+    send_whatsapp_msging_srvc("+919633528888", f"The time is {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"The time is {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}")
 if __name__ == "__main__":
     main()

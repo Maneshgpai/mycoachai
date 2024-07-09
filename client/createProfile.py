@@ -181,7 +181,7 @@ if submitted:
                 # print("log 5:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
                 #save_user_profile(phone_number, profile_data)
                 response = {"status": "Saved profile to DB","status_cd":200,"message": "Saved profile to DB","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
-                st.success("Woohoo!!! That's a great first step! You will soon receive Whatsapp message from our agents!")
+                st.success("Woohoo!!! That's a great first step! You can go ahead and close this window. You will soon receive a Whatsapp message from our agents!")
                 create_workoutplan(phone_number,profile_data)
 
         else:

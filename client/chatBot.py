@@ -73,10 +73,10 @@ def pick_language(data):
             return value
 
 ## Function to create a new chat document if it doesn't exist
-def create_chat(phone_number):
-    chat_ref = db.collection('chats').document(phone_number)
-    if not chat_ref.get().exists:
-        chat_ref.set({'messages': [], "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')})
+# def create_chat(phone_number):
+#     chat_ref = db.collection('chats').document(phone_number)
+#     if not chat_ref.get().exists:
+#         chat_ref.set({'messages': [], "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')})
 
 ## Function for bot response
 def get_agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile):
@@ -112,7 +112,7 @@ def get_chat_messages(phone_number):
     if doc.exists:
         return doc.to_dict().get('messages', [])
     else:
-        create_chat(phone_number)
+        # create_chat(phone_number)
         return []
 
 ## Function to save chat history to Firebase

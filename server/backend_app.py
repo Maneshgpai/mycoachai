@@ -81,13 +81,19 @@ def mock_chat():
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
+    botresponse = ""
     try:
         print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********Entered CHAT API")
         # messages = []
         phone_number = request.form.get('From')
-        if func.validate_phone(phone_number, db):
+        phone_number = phone_number.replace('whatsapp:', '')
+
+        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> phone_number {phone_number}")
+        user_data = func.validate_phone(phone_number, db)
+        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> user_data {bool(user_data)}")
+        if bool(user_data):
             latest_user_message = request.form.get('Body')
-            data = func.get_user_data(phone_number, db)
+            data = func.get_user_data(phone_number, db, user_data)
             print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> Data for the user is {data}")
 
             hist_user_bot_conversation = data.get('hist_user_bot_conversation')
@@ -95,10 +101,14 @@ def chat():
             workoutplan = data.get('workoutplan')
             user_health_profile = data.get('user_health_profile')
 
-            botresponse = ""
             botresponse = agentChat.agent_response(phone_number, latest_user_message, language, hist_user_bot_conversation, workoutplan,user_health_profile)
             api_response = {"status": "Success","status_cd":200,"message": botresponse}
             log_response = {"message": "Chat API > Bot responded successfully","bot_message": botresponse,"user_message":latest_user_message, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+
+            hist_user_bot_conversation.append({"role": "user", "content": latest_user_message, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"source":"chat"})
+            hist_user_bot_conversation.append({"role": "assistant", "content": api_response, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"source":"chat"})
+            chat_ref = db.collection('chats').document(phone_number)
+            chat_ref.update({"messages": firestore.ArrayUnion(hist_user_bot_conversation)})
         else:
             botresponse = f"Hello! I don't find a workout profile for you against phone {phone_number}."
             log_response = {"status": "Chat API > Error in phone number validation","status_cd":400, "message": botresponse, "timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
@@ -111,13 +121,6 @@ def chat():
     phone_log_ref = db.collection('log').document(phone_number)
     func.createLog(phone_log_ref, log_response)
     ## Logging stop ##
-
-    hist_user_bot_conversation.append({"role": "user", "content": latest_user_message, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"source":"chat"})
-    hist_user_bot_conversation.append({"role": "assistant", "content": api_response, "timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"source":"chat"})
-    chat_ref = db.collection('chats').document(phone_number)
-    if not chat_ref.get().exists:
-        chat_ref.set({'messages': []})
-    chat_ref.update({"messages": firestore.ArrayUnion(hist_user_bot_conversation)})
 
     chat_response = MessagingResponse()
     chat_response.message(botresponse)
