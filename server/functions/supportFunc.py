@@ -96,7 +96,7 @@ def get_user_data(phone, db):
 def send_whatsapp(phone_number, message):
     client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
     message = client.messages.create(
-        from_='whatsapp:+917676912381',
+        from_='whatsapp:+14155238886',
         body=message,
         to='whatsapp:'+phone_number,)
 
