@@ -6,12 +6,32 @@ import os
 from dotenv import load_dotenv
 import json
 import requests
+from PIL import Image
 
 load_dotenv()
 db = firestore.Client.from_service_account_json("firestore_key.json")
 
 ist = timezone(timedelta(hours=5, minutes=30))
 timestamp = datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S")
+
+# Main application
+img_logo = 'images/logo_small1.png'
+st.set_page_config(page_title="A.I Coach", page_icon=img_logo, layout="centered", initial_sidebar_state="auto", menu_items={
+        'Get Help': 'https://www.physikally.com/help',
+        'Report a bug': "https://www.physikally.com/feedback",
+        'About': "https://www.physikally.com"
+    })
+st.logo(img_logo)
+st.header("Personal Workout Coach")
+col1, col2 = st.columns([8,2])
+with col1:
+    st.write("Create your own personal trainer in just TWO STEPS!")
+    st.write(":grey[Step 1. Fill and submit the below form. ] \n\n :grey[Step 2. Wait for the Whatsapp message from your coach] \n\n")
+    st.caption(":grey[Don't forget to set the coach's language. We support many Indian languages!]")
+    # st.write(":grey[*Select your language in the form below.]")
+with col2:
+    st.image('images/logo_small1.png')
+st.divider()
 
 languages = [
     "English",
@@ -42,13 +62,13 @@ def validate_mandatory_inputs():
     return False
 
 # @st.experimental_asyncio.to_thread
-def create_workoutplan(phone_number,profile_data):
+def create_workoutplan(phone_number,profile_data,whatsapp_optin):
     public_api_url = os.environ['PUBLIC_API_URL']+'/api/create_profile'
     print(f"Create Profile >> Calling agent {public_api_url}")
     response = {}
     response = json.dumps(response)
     try:
-        response = requests.post(public_api_url, json={"phone_number": phone_number,"profile_data":profile_data})
+        response = requests.post(public_api_url, json={"phone_number": phone_number,"profile_data":profile_data,"whatsapp_optin":whatsapp_optin})
         response.raise_for_status()
         print (response.json().get("message"))
     except requests.exceptions.RequestException as e:
@@ -90,7 +110,7 @@ def basic_information():
     st.selectbox("Time per workout session :red[*]", ("15-30 minutes", "30-45 minutes", "45-60 minutes", "More than 60 minutes"), index=None, key="workout_duration")
     st.multiselect("Preferred workout location :red[*]", ["Home", "Gym", "Outdoors"], key="workout_location")
 
-    st.selectbox("Select your preferred language for the coaching :red[*]",options=languages, key="language")
+    st.selectbox("Select the language for the coach :red[*]",options=languages, key="language")
 
 # Function to display optional fields
 def additional_information():
@@ -134,57 +154,75 @@ def additional_information():
         # st.radio("Preferred type of coaching", 
         #          ("Motivational", "Instructional", "Supportive", "Other"), key="coaching_preference")
 
-# Main application
-st.title("www.mycoach.ai")
-st.subheader("Your Personal Workout Coach")
-st.write("Please fill out the following details to create your profile.")
+# Function to display optional fields
+def get_whatsapp_optin():
+    st.radio("I agree to receive WhatsApp messages from Datacorp Llc (legal owner of www.physikally.com)", ("Yes", "No"), key="whatsapp_optin", help="We will NEVER send any messages soliciting or advertising services. You can chat with your personal coach only on Whatsapp. And we need your consent to start this conversation. You can OPT OUT of this by Replying STOP to the Whatsapp number at any time.")
 
+
+st.subheader("Create Your Profile")
 show_phone_number()
 with st.form("form_profile", clear_on_submit=False, border=False):
     basic_information()
     additional_information()
+    get_whatsapp_optin()    
     submitted = st.form_submit_button("Submit")
+
+# col1, col2, col3 = st.columns([1,1,1])
+# with col1:
+#     st.empty()
+# with col2:
+#     st.subheader("Create Your Profile")
+#     show_phone_number()
+#     with st.form("form_profile", clear_on_submit=False, border=False):
+#         basic_information()
+#         additional_information()
+#         get_whatsapp_optin()    
+#         submitted = st.form_submit_button("Submit")
+# with col3:
+#     st.empty()
 
 # Button to submit the form
 if submitted:
-    # print("log 1:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
-    if validate_mandatory_inputs():
-        phone_number = st.session_state.get("ctry_cd") + st.session_state.get("phone")
-        phone_log_ref = db.collection('log').document(phone_number)
-        if phone_number:
-            if user_exists(phone_number):
-                # print("log 3:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
-                st.warning("A profile with this phone number already exists.")
-                # print("log 4:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
-            else:
-                profile_data = {
-                    "Full Name_pii": st.session_state.get("full_name"),
-                    "Age": st.session_state.get("age"),
-                    "Gender": st.session_state.get("gender"),
-                    "current_height_in_cm": st.session_state.get("height"),
-                    "current_weight_in_kg": st.session_state.get("weight"),
-                    "Phone_pii": st.session_state.get("ctry_cd") + st.session_state.get("phone"),
-                    "fitness_goal": st.session_state.get("fitness_goal"),
-                    "workout_types": st.session_state.get("workout_types"),
-                    "workout_days": st.session_state.get("workout_days"),
-                    "workout_duration": st.session_state.get("workout_duration"),
-                    "workout_location": st.session_state.get("workout_location"),
-                    "target_weight_in_kg": st.session_state.get("target_weight_in_kg"),
-                    "target_body_fat_percentage": st.session_state.get("body_fat_percentage_%"),
-                    "current_fitness_level": st.session_state.get("fitness_level"),
-                    "current_workout_equipment": st.session_state.get("workout_equipment"),
-                    "current_activity_level": st.session_state.get("activity_level"),
-                    "current_sleep_hours": st.session_state.get("sleep_hours"),
-                    "current_stress_level": st.session_state.get("stress_level"),
-                    "language": st.session_state.get("language"),
-                }
-                # print("log 5:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
-                #save_user_profile(phone_number, profile_data)
-                response = {"status": "Saved profile to DB","status_cd":200,"message": "Saved profile to DB","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
-                st.success("Woohoo!!! That's a great first step! You can go ahead and close this window. You will soon receive a Whatsapp message from our agents!")
-                create_workoutplan(phone_number,profile_data)
+    if st.session_state.get("whatsapp_optin") == "Yes":
+        if validate_mandatory_inputs():
+            phone_number = st.session_state.get("ctry_cd") + st.session_state.get("phone")
+            phone_log_ref = db.collection('log').document(phone_number)
+            if phone_number:
+                if user_exists(phone_number):
+                    # print("log 3:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
+                    st.warning("A profile with this phone number already exists.")
+                    # print("log 4:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
+                else:
+                    profile_data = {
+                        "Full Name_pii": st.session_state.get("full_name"),
+                        "Age": st.session_state.get("age"),
+                        "Gender": st.session_state.get("gender"),
+                        "current_height_in_cm": st.session_state.get("height"),
+                        "current_weight_in_kg": st.session_state.get("weight"),
+                        "Phone_pii": st.session_state.get("ctry_cd") + st.session_state.get("phone"),
+                        "fitness_goal": st.session_state.get("fitness_goal"),
+                        "workout_types": st.session_state.get("workout_types"),
+                        "workout_days": st.session_state.get("workout_days"),
+                        "workout_duration": st.session_state.get("workout_duration"),
+                        "workout_location": st.session_state.get("workout_location"),
+                        "target_weight_in_kg": st.session_state.get("target_weight_in_kg"),
+                        "target_body_fat_percentage": st.session_state.get("body_fat_percentage_%"),
+                        "current_fitness_level": st.session_state.get("fitness_level"),
+                        "current_workout_equipment": st.session_state.get("workout_equipment"),
+                        "current_activity_level": st.session_state.get("activity_level"),
+                        "current_sleep_hours": st.session_state.get("sleep_hours"),
+                        "current_stress_level": st.session_state.get("stress_level"),
+                        "language": st.session_state.get("language"),
+                    }
+                    # print("log 5:",datetime.datetime.now(pytz.utc).strftime('%Y-%m-%d %H:%M:%S.%f'))
+                    #save_user_profile(phone_number, profile_data)
+                    response = {"status": "Saved profile to DB","status_cd":200,"message": "Saved profile to DB","timestamp":{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}}
+                    st.success("Woohoo!!! That's a great first step! You can go ahead and close this window. You will soon receive a Whatsapp message from our agents!")
+                    create_workoutplan(phone_number,profile_data,st.session_state.get("whatsapp_optin"))
 
+            else:
+                st.error("Phone number is mandatory for profile creation.")
         else:
-            st.error("Phone number is mandatory for profile creation.")
+            st.error("Please fill out all mandatory fields.")
     else:
-        st.error("Please fill out all mandatory fields.")
+        st.error("Consent is required to receive WhatsApp messages from your coach.")

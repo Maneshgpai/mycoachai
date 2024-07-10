@@ -39,7 +39,9 @@ Run myCoachAi_Chat for Chat simulation. Login with profile phone number and star
     streamlit run myCoachAi_Chat.py
     
 
-Backend server coded in Python hosted on Flask, NGROK (for local) & GUNICORN (for Render)
- frontend UI hosted on Render
-Database on Google Firebase
-Chat on Whatsapp through Twilio
+- Backend server coded in Python hosted on Flask. 
+- NGROK used as reverse proxy to expose the backend server to web.
+- GUNICORN used as Web Server Gateway Interface (WSGI) HTTP server, for load balancing the backend API on Render
+- Frontend on Streamlit UI. Cna be hosted locally or on Render
+- Google Firebase is the JSON DB used to store user data and logs
+- Twilio is used to enable Whatsapp chatting with agent

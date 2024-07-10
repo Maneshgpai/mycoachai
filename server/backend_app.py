@@ -88,9 +88,9 @@ def chat():
         phone_number = request.form.get('From')
         phone_number = phone_number.replace('whatsapp:', '')
 
-        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> phone_number {phone_number}")
+        # print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> phone_number {phone_number}")
         user_data = func.validate_phone(phone_number, db)
-        print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> user_data {bool(user_data)}")
+        # print(f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}**********CHAT API >> user_data {bool(user_data)}")
         if bool(user_data):
             latest_user_message = request.form.get('Body')
             data = func.get_user_data(phone_number, db, user_data)
@@ -169,9 +169,10 @@ def create_profile():
         data = request.json
         phone_number = data.get('phone_number')
         profile_data = data.get('profile_data')
+        whatsapp_optin_flag = data.get('whatsapp_optin')
         
         ## Save profile to DB
-        db.collection('users').document(phone_number).set({"timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"action":"create_profile","profile":profile_data})
+        db.collection('users').document(phone_number).set({"timestamp": datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S'),"action":"create_profile","profile":profile_data,"Has User given consent for Whatsapp?":whatsapp_optin_flag})
 
         phone_log_ref = db.collection('log').document(phone_number)
         ## Logging start ##
