@@ -7,17 +7,27 @@ Run Virtual env and install dependancies
 source venv/bin/activate
 pip install -r requirements.txt
 
-
-Running Backend locally:
+Running Backend locally
 ========================
-cd server
-python3 backend_app.py
+source venv/bin/activate
+python3 server/backend_app.py
 
-Running Frontend locally:
-========================
-cd client
-streamlit run chatBot.py
+Running Frontend for CreateProfile locally
+==========================================
+Reccomended to run only createProfile on frontend. The chat to be driven via Whatsapp only
+source venv/bin/activate
+Ensure PUBLIC_API_URL is pointed to localhost
+streamlit run client/createProfile.py
 
+Running Frontend for Chat locally
+=================================
+Run backend server
+    python3 server/backend_app.py
+Expose local host port to internet using ngrok. Run in a new terminal:
+    ngrok http 8080
+Navigate to Twilio web, enable sandbox for the required personal Whatsapp number
+Copy the fwding url from NGRO and paste as webhook in Twilio Sandbox portal setting:
+    http://<your-ngrok-url>/api/chat
 
 Testing profile automatically
 ==============================
@@ -28,11 +38,8 @@ Profile and the Workoutplan will be created and saved into Firebase DB (users an
 Run myCoachAi_Chat for Chat simulation. Login with profile phone number and start chatting with coach. Save the chat if you need the bot to remember for future reference
     streamlit run myCoachAi_Chat.py
     
-Sending whatsapp with Twilio
-============================
-Run app.py using below command:
-    flask run
-Expose webhook to internet using below command in a new terminal:
-    ngrok http 5000
-Copy the fwding url and paste as webhook in Twilio portal setting:
-    http://<your-ngrok-url>/whatsapp
+
+Backend server coded in Python hosted on Flask, NGROK (for local) & GUNICORN (for Render)
+ frontend UI hosted on Render
+Database on Google Firebase
+Chat on Whatsapp through Twilio

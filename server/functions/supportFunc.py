@@ -111,11 +111,23 @@ def get_user_data(phone, db, user_data):
         return "Invalid Phone number. Please try again."
 
 def send_whatsapp(phone_number, message):
-    client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
+    acct_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    messaging_service_sid = os.getenv("TWILIO_MESSAGING_SERVICE_ID")
+    content_sid = os.getenv("TWILIO_TEMPLATE_CONTENT_SID_ENGLISH")
+    to_whatsapp_number = 'whatsapp:'+phone_number
+    # content_variables = {
+    #     '1': 'John Doe',  # Example placeholder value
+    #     '2': 'Your order has been shipped!'  # Example placeholder value
+    # }
+    client = Client(acct_sid, auth_token)
     message = client.messages.create(
-        from_='whatsapp:+14155238886',
+        messaging_service_sid=messaging_service_sid,
         body=message,
-        to='whatsapp:'+phone_number,)
+        to=to_whatsapp_number,
+        content_sid=content_sid,
+        # content_variables=content_variables
+    )
 
 def createLog(phone_log_ref, response):
     phone_log_ref.collection("session_"+datetime.now(ist).strftime('%Y-%m-%d')).document(str(datetime.now(ist))).set(response)

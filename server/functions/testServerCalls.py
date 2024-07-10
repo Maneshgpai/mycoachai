@@ -6,19 +6,29 @@ from datetime import datetime, timedelta, timezone
 ist = timezone(timedelta(hours=5, minutes=30))
 
 load_dotenv()
-acct_sid = os.getenv("TWILIO_ACCOUNT_SID")
-auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 
 def send_whatsapp_msging_srvc(phone_number, message):
-    ## If workout plan is created, send Whatsapp message informing the user
+    acct_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+    messaging_service_sid = "MG5700d70eef672a1bbbfd5091fef1d963"
+    to_whatsapp_number = 'whatsapp:'+phone_number
+    content_sid = 'HXe2b3a530928fe5d3e2f7e262eda0fbb6'
+    # content_variables = {
+    #     '1': 'John Doe',  # Example placeholder value
+    #     '2': 'Your order has been shipped!'  # Example placeholder value
+    # }
     client = Client(acct_sid, auth_token)
     message = client.messages.create(
-        messaging_service_sid="MG5700d70eef672a1bbbfd5091fef1d963",
+        messaging_service_sid=messaging_service_sid,
         body=message,
-        to='whatsapp:'+phone_number,)
+        to=to_whatsapp_number,
+        content_sid=content_sid,
+        # content_variables=content_variables
+    )
 
 def send_whatsapp_sandbox(phone_number, message):
-    ## If workout plan is created, send Whatsapp message informing the user
+    acct_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
     client = Client(acct_sid, auth_token)
     message = client.messages.create(
         from_="whatsapp:+14155238886",
@@ -26,7 +36,8 @@ def send_whatsapp_sandbox(phone_number, message):
         body=message,)
 
 def send_whatsapp_sender(phone_number, message):
-    ## If workout plan is created, send Whatsapp message informing the user
+    acct_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
     client = Client(acct_sid, auth_token)
     message = client.messages.create(
         from_="whatsapp:+917676912381",
