@@ -26,8 +26,8 @@ st.header("Personal Workout Coach")
 col1, col2 = st.columns([8,2])
 with col1:
     st.write("Create your own personal trainer in just TWO STEPS!")
-    st.write(":grey[Step 1. Fill and submit the below form. ] \n\n :grey[Step 2. Wait for the Whatsapp message from your coach] \n\n")
-    st.caption(":grey[Don't forget to set the coach's language. We support many Indian languages!]")
+    st.write(":grey[Step 1. Fill and submit the below form. ] \n\n :grey[Step 2. Wait for the Whatsapp message from your coach and start chatting!] \n\n")
+    st.caption(":grey[Fun tip - Set the coach's language to your mother tongue! We support 10 languages from India]")
     # st.write(":grey[*Select your language in the form below.]")
 with col2:
     st.image('images/logo_small1.png')
@@ -156,7 +156,7 @@ def additional_information():
 
 # Function to display optional fields
 def get_whatsapp_optin():
-    st.radio("I agree to receive WhatsApp messages from Datacorp Llc (legal owner of www.physikally.com)", ("Yes", "No"), key="whatsapp_optin", help="We will NEVER send any messages soliciting or advertising services. You can chat with your personal coach only on Whatsapp. And we need your consent to start this conversation. You can OPT OUT of this by Replying STOP to the Whatsapp number at any time.")
+    st.radio("I agree to receive WhatsApp messages from Datacorp Llc (legal owner of www.physikally.com)", ("No", "Yes"), key="whatsapp_optin", help="We will NEVER send any messages soliciting or advertising services. You can chat with your personal coach only on Whatsapp. And we need your consent to start this conversation. You can OPT OUT of this by Replying STOP to the Whatsapp number at any time.")
 
 
 st.subheader("Create Your Profile")
